@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2P File Sharing Tracker</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <header>
+    <h1>P2P File Sharing Tracker</h1>
+  </header>
+
+  <div class="container">
+    <div class="toggle">
+      <button id="senderBtn" class="active">Sender</button>
+      <button id="receiverBtn">Receiver</button>
+    </div>
+
+    <!-- Sender Section -->
+    <div id="senderSection" class="box active">
+      <h2>Send a File</h2>
+      <div id="dropZone">📂 Drag & Drop your file here or click to browse</div>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" hidden required>
+        <input type="text" name="peer_addr" placeholder="Your Peer Address (e.g. 127.0.0.1:10001)" required>
+        <button type="submit">Upload & Generate Code</button>
+      </form>
+      <p id="uploadStatus"></p>
+    </div>
+
+    <!-- Receiver Section -->
+    <div id="receiverSection" class="box">
+      <h2>Receive a File</h2>
+      <form id="downloadForm">
+        <input type="text" id="code" placeholder="Enter 6-digit Code" required>
+        <button type="submit">Download</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  // Toggle sender/receiver view
+  const senderBtn = document.getElementById('senderBtn');
+  const receiverBtn = document.getElementById('receiverBtn');
+  const senderSection = document.getElementById('senderSection');
+  const receiverSection = document.getElementById('receiverSection');
+
+  senderBtn.onclick = () => {
+    senderBtn.classList.add('active');
+    receiverBtn.classList.remove('active');
+    senderSection.classList.add('active');
+    receiverSection.classList.remove('active');
+  };
+
+  receiverBtn.onclick = () => {
+    receiverBtn.classList.add('active');
+    senderBtn.classList.remove('active');
+    receiverSection.classList.add('active');
+    senderSection.classList.remove('active');
+  };
+
+  // Drag & drop logic
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('hover');
+  });
+
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('hover');
+    if (e.dataTransfer.files.length > 0) {
+      fileInput.files = e.dataTransfer.files;
+      dropZone.textContent = `📁 ${e.dataTransfer.files[0].name}`;
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0)
+      dropZone.textContent = `📁 ${fileInput.files[0].name}`;
+  });
+
+  // Upload file
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.code) {
+      document.getElementById('uploadStatus').innerHTML =
+        `✅ Uploaded successfully!<br>Share this code: <b>${data.code}</b>`;
+    } else {
+      document.getElementById('uploadStatus').innerText =
+        '❌ Upload failed: ' + (data.error || 'Unknown error');
+    }
+  });
+
+  // Download file
+  document.getElementById('downloadForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const code = document.getElementById('code').value.trim();
+    window.location.href = `/download/${code}`;
+  });
+  </script>
+</body>
+</html>
